@@ -8,10 +8,10 @@ def get_sheet():
     scope = ['https://spreadsheets.google.com/feeds',
              'https://www.googleapis.com/auth/drive']
     # Use secrets from Streamlit Cloud
-creds = service_account.Credentials.from_service_account_info(
+    creds = service_account.Credentials.from_service_account_info(
     st.secrets["gcp_service_account"],
     scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-)
+    )
     client = gspread.authorize(creds)
     sheet = client.open(SHEET_NAME).worksheet("Tasks")
     return sheet
