@@ -46,7 +46,7 @@ st.markdown("""
     }
 
     .task-text {
-        font-size: 18px;
+        font-size: 19px;
         font-weight: 500;
         margin: 0;
     }
