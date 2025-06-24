@@ -135,7 +135,7 @@ def main_app():
                 add_task(username, new_task.strip())
                 st.experimental_rerun()
     else:
-        st.warning("🚫 Task addition allowed only between 3 PM and 4 AM.")
+        st.warning("🚫 Task addition allowed only between 6 PM and 4 AM.")
 
     st.markdown("---")
 
