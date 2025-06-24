@@ -27,8 +27,8 @@ st.markdown("""
     <style>
     /* Increase checkbox size */
     input[type=checkbox] {
-        width: 20px;
-        height: 20px;
+        width: 60px;
+        height: 60px;
     }
     /* Task card styling */
     .task-card {
