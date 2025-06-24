@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import datetime
-from sheets_util import add_task, get_user_tasks, update_task_status
+from db_util import add_task, get_user_tasks, update_task_status, init_db, cleanup_old_tasks
 import json
 
 CUTOFF_HOUR = 4  # 4:00 AM cutoff
@@ -9,7 +9,11 @@ CUTOFF_HOUR = 4  # 4:00 AM cutoff
 with open("users.json", "r") as f:
     USERS = json.load(f)
 
-# Page settings and styling
+# Initialize and clean database
+init_db()
+cleanup_old_tasks()
+
+# Streamlit config and styling
 st.set_page_config(page_title="Smart To-Do", page_icon="📝", layout="centered")
 
 st.markdown("""
@@ -27,12 +31,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Session state init
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
-# Authentication
 def login():
     st.title("Login to To-Do")
     username = st.text_input("Username")
@@ -45,12 +47,9 @@ def login():
         else:
             st.error("Invalid credentials.")
 
-# Cutoff time logic
 def is_before_cutoff():
-    now = datetime.now()
-    return now.hour < CUTOFF_HOUR
+    return datetime.now().hour < CUTOFF_HOUR
 
-# Main app UI
 def main_app():
     st.markdown(f"""
         <h2 style='text-align: center;'>📝 Daily To-Do List</h2>
@@ -62,26 +61,22 @@ def main_app():
     tasks = get_user_tasks(st.session_state.username)
 
     st.markdown("### ✅ Today's Tasks")
-
     if tasks:
         for task in tasks:
             task_text = task["task"]
             completed = task["completed"] == "True"
-
             col1, col2 = st.columns([0.08, 0.92])
             with col1:
                 checked = st.checkbox("", value=completed, key=task_text)
             with col2:
-                display_text = f"~~{task_text}~~" if checked else task_text
-                st.markdown(f"<div style='font-size: 16px;'>{display_text}</div>", unsafe_allow_html=True)
-
+                display = f"~~{task_text}~~" if checked else task_text
+                st.markdown(f"<div style='font-size: 16px;'>{display}</div>", unsafe_allow_html=True)
             if checked != completed:
                 update_task_status(st.session_state.username, task_text, checked)
     else:
         st.info("No tasks added yet for today.")
 
     st.markdown("---")
-
     if editable:
         st.markdown("### ➕ Add New Task")
         with st.form("add_form", clear_on_submit=True):
@@ -99,7 +94,6 @@ def main_app():
         st.session_state.username = ""
         st.experimental_rerun()
 
-# Launch
 if st.session_state.logged_in:
     main_app()
 else:
