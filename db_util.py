@@ -1,50 +1,64 @@
-from datetime import datetime, timedelta
 import sqlite3
+from datetime import datetime, timedelta
+
+DB_NAME = "todo.db"
 
 def init_db():
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            task TEXT NOT NULL,
-            completed BOOLEAN NOT NULL DEFAULT 0,
-            date TEXT NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-def cleanup_old_tasks():
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    cutoff_date = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
-    c.execute("DELETE FROM tasks WHERE date < ?", (cutoff_date,))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_NAME) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS tasks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                task TEXT NOT NULL,
+                completed TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
 
 def add_task(username, task):
-    today = datetime.now().strftime("%Y-%m-%d")
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO tasks (username, task, completed, date) VALUES (?, ?, 0, ?)", (username, task, today))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_NAME) as conn:
+        conn.execute("INSERT INTO tasks (username, task, completed) VALUES (?, ?, ?)", (username, task, "False"))
+        conn.commit()
 
 def get_user_tasks(username):
-    today = datetime.now().strftime("%Y-%m-%d")
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute("SELECT task, completed FROM tasks WHERE username = ? AND date = ?", (username, today))
-    rows = c.fetchall()
-    conn.close()
-    return [{"task": row[0], "completed": str(bool(row[1]))} for row in rows]
+    with sqlite3.connect(DB_NAME) as conn:
+        cur = conn.cursor()
+        if username == "admin":
+            cur.execute("SELECT id, username, task, completed, timestamp FROM tasks")
+        else:
+            cur.execute("SELECT id, username, task, completed, timestamp FROM tasks WHERE username = ?", (username,))
+        rows = cur.fetchall()
+        return [
+            {
+                "id": row[0],
+                "username": row[1],
+                "task": row[2],
+                "completed": row[3],
+                "timestamp": row[4]
+            }
+            for row in rows
+        ]
 
 def update_task_status(username, task, completed):
-    today = datetime.now().strftime("%Y-%m-%d")
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute("UPDATE tasks SET completed = ? WHERE username = ? AND task = ? AND date = ?", (int(completed), username, task, today))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_NAME) as conn:
+        conn.execute(
+            "UPDATE tasks SET completed = ?, timestamp = CURRENT_TIMESTAMP WHERE username = ? AND task = ?",
+            (str(completed), username, task)
+        )
+        conn.commit()
+
+def delete_task(task_id):
+    with sqlite3.connect(DB_NAME) as conn:
+        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        conn.commit()
+
+def cleanup_old_tasks():
+    threshold = datetime.now() - timedelta(hours=24)
+    with sqlite3.connect(DB_NAME) as conn:
+        conn.execute("""
+            DELETE FROM tasks 
+            WHERE completed = "True" 
+            AND timestamp < ?
+        """, (threshold.strftime("%Y-%m-%d %H:%M:%S"),))
+        conn.commit()
