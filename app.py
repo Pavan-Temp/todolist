@@ -3,7 +3,7 @@ from datetime import datetime
 from db_util import add_task, get_user_tasks, update_task_status, init_db, cleanup_old_tasks
 import json
 
-CUTOFF_HOUR = 15  # 3:00 PM cutoff
+CUTOFF_HOUR = 16  # 3:00 PM cutoff
 
 # Load users
 with open("users.json", "r") as f:
