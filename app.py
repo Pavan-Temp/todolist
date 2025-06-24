@@ -12,7 +12,7 @@ import json
 def is_within_cutoff():
     ist = timezone("Asia/Kolkata")
     hour = datetime.now(ist).hour
-    return hour >= 15 or hour < 4  # 3 PM to 4 AM
+    return hour >= 18 or hour < 4  # 3 PM to 4 AM
 
 # Load users
 with open("users.json", "r") as f:
