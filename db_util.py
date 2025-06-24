@@ -18,16 +18,22 @@ def init_db():
 
 def add_task(username, task):
     with sqlite3.connect(DB_NAME) as conn:
-        conn.execute("INSERT INTO tasks (username, task, completed) VALUES (?, ?, ?)", (username, task, "False"))
+        conn.execute(
+            "INSERT INTO tasks (username, task, completed) VALUES (?, ?, ?)",
+            (username, task, "False")
+        )
         conn.commit()
 
-def get_user_tasks(username):
+def get_user_tasks(username=None):
     with sqlite3.connect(DB_NAME) as conn:
         cur = conn.cursor()
-        if username == "admin":
+        if username is None or username == "admin":
             cur.execute("SELECT id, username, task, completed, timestamp FROM tasks")
         else:
-            cur.execute("SELECT id, username, task, completed, timestamp FROM tasks WHERE username = ?", (username,))
+            cur.execute(
+                "SELECT id, username, task, completed, timestamp FROM tasks WHERE username = ?",
+                (username,)
+            )
         rows = cur.fetchall()
         return [
             {
@@ -41,11 +47,18 @@ def get_user_tasks(username):
         ]
 
 def update_task_status(username, task, completed):
+    # Only update timestamp when marking completed
     with sqlite3.connect(DB_NAME) as conn:
-        conn.execute(
-            "UPDATE tasks SET completed = ?, timestamp = CURRENT_TIMESTAMP WHERE username = ? AND task = ?",
-            (str(completed), username, task)
-        )
+        if completed:
+            conn.execute(
+                "UPDATE tasks SET completed = ?, timestamp = CURRENT_TIMESTAMP WHERE username = ? AND task = ?",
+                (str(completed), username, task)
+            )
+        else:
+            conn.execute(
+                "UPDATE tasks SET completed = ? WHERE username = ? AND task = ?",
+                (str(completed), username, task)
+            )
         conn.commit()
 
 def delete_task(task_id):
@@ -58,7 +71,6 @@ def cleanup_old_tasks():
     with sqlite3.connect(DB_NAME) as conn:
         conn.execute("""
             DELETE FROM tasks 
-            WHERE completed = "True" 
-            AND timestamp < ?
+            WHERE completed = "True" AND timestamp < ?
         """, (threshold.strftime("%Y-%m-%d %H:%M:%S"),))
         conn.commit()
