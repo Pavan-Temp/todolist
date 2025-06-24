@@ -1,19 +1,21 @@
+import streamlit as st
+from google.oauth2 import service_account
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-SHEET_NAME = "TodoData"  # your spreadsheet name
+# use correct scopes
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 
 def get_sheet():
-    scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
-    # Use secrets from Streamlit Cloud
     creds = service_account.Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        st.secrets["gcp_service_account"],
+        scopes=SCOPES
     )
     client = gspread.authorize(creds)
-    sheet = client.open(SHEET_NAME).worksheet("Tasks")
+    sheet = client.open("TodoData").worksheet("Tasks")
     return sheet
 
 def add_task(username, task):
@@ -30,7 +32,8 @@ def get_user_tasks(username):
 def update_task_status(username, task, completed=True):
     sheet = get_sheet()
     rows = sheet.get_all_records()
+    today = datetime.now().strftime("%Y-%m-%d")
     for idx, row in enumerate(rows):
-        if row["username"] == username and row["task"] == task and row["date"] == datetime.now().strftime("%Y-%m-%d"):
-            sheet.update_cell(idx + 2, 4, str(completed))  # completed is column 4
+        if row["username"] == username and row["task"] == task and row["date"] == today:
+            sheet.update_cell(idx + 2, 4, str(completed))
             break
