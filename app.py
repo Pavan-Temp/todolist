@@ -3,7 +3,7 @@ from datetime import datetime
 from db_util import add_task, get_user_tasks, update_task_status, init_db, cleanup_old_tasks
 import json
 
-CUTOFF_HOUR = 15  # 4:00 AM cutoff
+CUTOFF_HOUR = 15  # 3:00 PM cutoff
 
 # Load users
 with open("users.json", "r") as f:
@@ -28,13 +28,37 @@ st.markdown("""
         padding: 10px;
         border: 1px solid #ddd;
     }
+    .task-card {
+        background-color: #f8f9fa;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-left: 6px solid #0072C6;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        transition: all 0.2s ease-in-out;
+    }
+    .task-card:hover {
+        background-color: #eef6fb;
+        transform: scale(1.01);
+    }
+    .task-complete {
+        text-decoration: line-through;
+        color: gray;
+    }
+    .task-text {
+        font-size: 16px;
+        font-weight: 500;
+        margin-top: 5px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
+# Session state
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
+# Login screen
 def login():
     st.title("Login to To-Do")
     username = st.text_input("Username")
@@ -47,9 +71,11 @@ def login():
         else:
             st.error("Invalid credentials.")
 
+# Cutoff time
 def is_before_cutoff():
     return datetime.now().hour < CUTOFF_HOUR
 
+# Main To-Do interface
 def main_app():
     st.markdown(f"""
         <h2 style='text-align: center;'>📝 Daily To-Do List</h2>
@@ -61,22 +87,29 @@ def main_app():
     tasks = get_user_tasks(st.session_state.username)
 
     st.markdown("### ✅ Today's Tasks")
+
     if tasks:
         for task in tasks:
             task_text = task["task"]
             completed = task["completed"] == "True"
+
             col1, col2 = st.columns([0.08, 0.92])
             with col1:
                 checked = st.checkbox("", value=completed, key=task_text)
             with col2:
-                display = f"~~{task_text}~~" if checked else task_text
-                st.markdown(f"<div style='font-size: 16px;'>{display}</div>", unsafe_allow_html=True)
+                styled_text = f"<div class='task-card'><div class='task-text {'task-complete' if checked else ''}'>{task_text}</div></div>"
+                st.markdown(styled_text, unsafe_allow_html=True)
+
+            # Update if toggled
             if checked != completed:
                 update_task_status(st.session_state.username, task_text, checked)
+                st.experimental_rerun()
     else:
         st.info("No tasks added yet for today.")
 
     st.markdown("---")
+
+    # Task input section
     if editable:
         st.markdown("### ➕ Add New Task")
         with st.form("add_form", clear_on_submit=True):
@@ -86,7 +119,7 @@ def main_app():
                 add_task(st.session_state.username, new_task.strip())
                 st.experimental_rerun()
     else:
-        st.warning("🚫 Adding new tasks is disabled after 4:00 AM.")
+        st.warning("🚫 Adding new tasks is disabled after 3:00 PM.")
 
     st.markdown("---")
     if st.button("🔒 Logout"):
@@ -94,6 +127,7 @@ def main_app():
         st.session_state.username = ""
         st.experimental_rerun()
 
+# Launch app
 if st.session_state.logged_in:
     main_app()
 else:
