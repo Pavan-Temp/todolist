@@ -28,27 +28,32 @@ st.markdown("""
         padding: 10px;
         border: 1px solid #ddd;
     }
+
     .task-card {
-        background-color: #f8f9fa;
-        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 14px 20px;
         margin-bottom: 12px;
-        border-left: 6px solid #0072C6;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        border-left: 5px solid #00cc66;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         transition: all 0.2s ease-in-out;
+        color: #fff;
     }
+
     .task-card:hover {
-        background-color: #eef6fb;
+        background-color: rgba(0, 114, 198, 0.2);
         transform: scale(1.01);
     }
-    .task-complete {
-        text-decoration: line-through;
-        color: gray;
-    }
+
     .task-text {
         font-size: 16px;
         font-weight: 500;
-        margin-top: 5px;
+        margin: 0;
+    }
+
+    .task-complete {
+        text-decoration: line-through;
+        opacity: 0.6;
     }
     </style>
 """, unsafe_allow_html=True)
