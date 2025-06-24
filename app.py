@@ -3,19 +3,21 @@ from datetime import datetime
 from db_util import add_task, get_user_tasks, update_task_status, init_db, cleanup_old_tasks, delete_task
 import json
 
-CUTOFF_START = 15  # 11:00 PM
-CUTOFF_END = 4     # 4:00 AM
+# Cutoff: allow adding from 6 PM to 4 AM
+def is_within_cutoff():
+    hour = datetime.now().hour
+    return hour >= 15 or hour < 4
 
 # Load users
 with open("users.json", "r") as f:
     USERS = json.load(f)
-USERS["admin"] = "admin123"  # Add admin
+USERS["admin"] = "admin123"  # Ensure admin is available
 
-# Init DB and cleanup
+# Initialize DB
 init_db()
 cleanup_old_tasks()
 
-# Streamlit config and styling
+# Streamlit config
 st.set_page_config(page_title="Smart To-Do", page_icon="📝", layout="centered")
 st.markdown("""
     <style>
@@ -45,11 +47,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Session state
+# Session defaults
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
+# Login
 def login():
     st.title("Login to To-Do")
     username = st.text_input("Username")
@@ -62,10 +65,7 @@ def login():
         else:
             st.error("Invalid credentials.")
 
-def is_within_cutoff():
-    hour = datetime.now().hour
-    return (hour >= 15 or hour < 4)
-
+# Main app
 def main_app():
     st.markdown(f"""
         <h2 style='text-align: center;'>📝 Daily To-Do List</h2>
@@ -75,8 +75,9 @@ def main_app():
     """, unsafe_allow_html=True)
 
     editable = is_within_cutoff()
-    tasks = get_user_tasks(st.session_state.username)
-    is_admin = st.session_state.username == "admin"
+    username = st.session_state.username
+    is_admin = username == "admin"
+    tasks = get_user_tasks(None if is_admin else username)
 
     st.markdown("### ✅ Today's Tasks")
     if tasks:
@@ -104,7 +105,7 @@ def main_app():
                 update_task_status(user, task_text, checked)
                 st.experimental_rerun()
     else:
-        st.info("No tasks added yet for today.")
+        st.info("No tasks added yet.")
 
     st.markdown("---")
     if editable:
@@ -113,10 +114,10 @@ def main_app():
             new_task = st.text_input("What's on your mind today?")
             submitted = st.form_submit_button("Add Task ✅")
             if submitted and new_task.strip():
-                add_task(st.session_state.username, new_task.strip())
+                add_task(username, new_task.strip())
                 st.experimental_rerun()
     else:
-        st.warning("🚫 You can only add tasks between 11 PM and 4 AM.")
+        st.warning("🚫 Task addition allowed only between 6 PM and 4 AM.")
 
     st.markdown("---")
     if st.button("🔒 Logout"):
@@ -124,6 +125,7 @@ def main_app():
         st.session_state.username = ""
         st.experimental_rerun()
 
+# Launch
 if st.session_state.logged_in:
     main_app()
 else:
