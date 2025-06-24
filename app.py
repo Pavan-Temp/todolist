@@ -12,7 +12,8 @@ import json
 
 # ✅ Cutoff logic: Allow task addition from 3 PM (15:00) to 4 AM (04:00)
 def is_within_cutoff():
-    hour = datetime.now().hour
+    ist = timezone("Asia/Kolkata")
+    hour = datetime.now(ist).hour
     return hour >= 15 or hour < 4  # <-- Change 15 to update cutoff start time
 
 # ✅ Load users from users.json and ensure admin user exists
