@@ -5,12 +5,14 @@ from db_util import (
     update_task_status, init_db,
     cleanup_old_tasks, delete_task
 )
+from pytz import timezone
 import json
 
 # Cutoff logic: 3 PM (15) to next day 4 AM (4)
 def is_within_cutoff():
-    hour = datetime.now().hour
-    return hour >= 15 or hour < 4  # 3 PM to 4 AM
+    ist = timezone("Asia/Kolkata")
+    hour = datetime.now(ist).hour
+    return hour >= 18 or hour < 4  # 3 PM to 4 AM
 
 # Load users
 with open("users.json", "r") as f:
