@@ -64,7 +64,7 @@ def login():
 
 def is_within_cutoff():
     hour = datetime.now().hour
-    return (hour >= CUTOFF_START or hour < CUTOFF_END)
+    return (hour >= 15 or hour < 4)
 
 def main_app():
     st.markdown(f"""
