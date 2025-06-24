@@ -1,36 +1,38 @@
 import streamlit as st
 from datetime import datetime
-from db_util import add_task, get_user_tasks, update_task_status, init_db, cleanup_old_tasks, delete_task
+from db_util import (
+    add_task, get_user_tasks,
+    update_task_status, init_db,
+    cleanup_old_tasks, delete_task
+)
 import json
-from pytz import timezone
 
-# Cutoff: allow adding from 3 PM to 4 AM IST
+# Cutoff logic: 3 PM (15) to next day 4 AM (4)
 def is_within_cutoff():
-    ist = timezone("Asia/Kolkata")
-    hour = datetime.now(ist).hour
-    return hour >= 15 or hour < 4  # ✅ Update START time here to change cutoff window
+    hour = datetime.now().hour
+    return hour >= 15 or hour < 4  # 3 PM to 4 AM
 
 # Load users
 with open("users.json", "r") as f:
     USERS = json.load(f)
-USERS["admin"] = "admin123"  # Ensure admin is available
+USERS["admin"] = "admin123"  # Admin user
 
 # Initialize DB
 init_db()
 cleanup_old_tasks()
 
-# Streamlit config
+# Streamlit config and style
 st.set_page_config(page_title="Smart To-Do", page_icon="📝", layout="centered")
 
-# Custom styles
 st.markdown("""
     <style>
-    /* Increase checkbox size */
-    input[type=checkbox] {
-        width: 60px;
-        height: 60px;
+    /* Bigger checkboxes */
+    div[data-baseweb="checkbox"] > div {
+        transform: scale(1.5);
+        margin-right: 10px;
     }
-    /* Task card styling */
+
+    /* Task Card Styles */
     .task-card {
         background-color: rgba(255, 255, 255, 0.05);
         padding: 14px 20px;
@@ -62,7 +64,7 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.username = ""
 
-# Login
+# Login UI
 def login():
     st.title("Login to To-Do")
     username = st.text_input("Username")
@@ -75,42 +77,44 @@ def login():
         else:
             st.error("Invalid credentials.")
 
-# Main app
+# Main UI
 def main_app():
+    username = st.session_state.username
+    is_admin = username == "admin"
+    editable = is_within_cutoff()
+
     st.markdown(f"""
         <h2 style='text-align: center;'>📝 Daily To-Do List</h2>
         <h4 style='text-align: center; color: gray;'>Welcome, 
-        <span style='color: #0072C6'>{st.session_state.username}</span>!</h4>
+        <span style='color: #0072C6'>{username}</span>!</h4>
         <hr style='border: 1px solid #eee;'>
     """, unsafe_allow_html=True)
 
-    editable = is_within_cutoff()
-    username = st.session_state.username
-    is_admin = username == "admin"
     tasks = get_user_tasks(None if is_admin else username)
 
-    st.markdown("### ✅ Today's Tasks")
+    st.markdown("### ✅ Tasks")
     if tasks:
         for task in tasks:
+            task_id = task["id"]
             task_text = task["task"]
             completed = task["completed"] == "True"
             user = task["username"]
-            task_id = task["id"]
 
             col1, col2, col3 = st.columns([0.08, 0.82, 0.10])
             with col1:
-                checked = st.checkbox("", value=completed, key=str(task_id))
+                checked = st.checkbox(" ", value=completed, key=f"cb_{task_id}")
             with col2:
-                display = f"<div class='task-card'><div class='task-text {'task-complete' if checked else ''}'>{task_text}"
+                task_display = f"<div class='task-card'><div class='task-text {'task-complete' if checked else ''}'>{task_text}"
                 if is_admin:
-                    display += f" <span style='color: #888;'>(by {user})</span>"
-                display += "</div></div>"
-                st.markdown(display, unsafe_allow_html=True)
+                    task_display += f" <span style='color: #888;'>(by {user})</span>"
+                task_display += "</div></div>"
+                st.markdown(task_display, unsafe_allow_html=True)
             with col3:
                 if is_admin and st.button("🗑️", key=f"del_{task_id}"):
                     delete_task(task_id)
                     st.experimental_rerun()
 
+            # Update task status if changed
             if checked != completed:
                 update_task_status(user, task_text, checked)
                 st.experimental_rerun()
@@ -118,6 +122,8 @@ def main_app():
         st.info("No tasks added yet.")
 
     st.markdown("---")
+
+    # Add Task
     if editable:
         st.markdown("### ➕ Add New Task")
         with st.form("add_form", clear_on_submit=True):
@@ -130,12 +136,14 @@ def main_app():
         st.warning("🚫 Task addition allowed only between 3 PM and 4 AM.")
 
     st.markdown("---")
+
+    # Logout
     if st.button("🔒 Logout"):
         st.session_state.logged_in = False
         st.session_state.username = ""
         st.experimental_rerun()
 
-# Launch
+# Run
 if st.session_state.logged_in:
     main_app()
 else:
